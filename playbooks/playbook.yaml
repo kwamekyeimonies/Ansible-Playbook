@@ -1,0 +1,99 @@
+---
+# - name: Install Docker && Pull postgres Image
+- hosts: all
+  become: true
+  tasks: 
+    - name: Update apt packages
+      apt:
+        update_cache: yes
+      tags:
+      - update apt packages
+    - name: install prerequisites
+      apt:
+       name:
+         - ca-certificates
+         - curl
+         - gnupg 
+         - lsb-release
+    # - name: Add Keyrings
+    #   file: 
+    #     path: /etc/apt/keyrings
+    #     state: directory
+      # tags: Add GPG    
+    - name: add official GPG Key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg 
+        state: present
+      # become: yes
+      # become_user: user
+      # tags:
+      #  - add GPG Key
+    - name: Set up repository
+      become: true
+      #   shell: echo "deb [arch=$(dpkg --print-architecture)] https://download.docker.com/linux/debian $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+      shell: echo "deb [arch=$(dpkg --print-architecture) ] https://download.docker.com/linux/ubuntu  $(lsb_release -cs) stable " | tee /etc/apt/sources.list.d/docker.list > /dev/null
+      tags:
+       - set up repository
+    # - name: update package index
+    #   apt:
+    #    update_cache: yes
+    #    tags:
+    #      - update package index
+    - name: install docker
+      apt:
+        name:
+        - docker-ce
+        - docker-ce-cli
+        - containerd.io
+        update_cache: yes  
+    - name: install Docker Engine,containerd, Docker Compose
+      become: yes
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-compose-plugin
+        update_cache: yes
+        state: latest
+      tags: 
+        - Install docker engine
+    - name: Create Docker group
+      become: yes
+      become_user: root
+      group:
+        name: docker
+        state: present
+    - name: Add user to the docker group.
+      become: yes
+      become_user: root
+      user: 
+       name: "user"
+       state: present
+       groups: docker
+       append: yes
+      tags:
+        - add User to Group
+    - name: Add user to Docker group and make it primary
+      become: yes
+      become_user: root
+      command: newgrp docker user
+
+    - name: Pull Postgres Image
+      community.docker.docker_image:
+       name: postgres
+       source: pull
+       state: present
+    # - name: Create default container
+    #   community.docker.docker_container:
+    #     name: demo_postgres
+    #     image: postgres
+    #     state: present
+    # name: Pull default Docker image
+    #     community.docker.docker_image:
+      #       name: "{{ default_container_image }}"
+  #       source: pull
+
+          
+
+      
